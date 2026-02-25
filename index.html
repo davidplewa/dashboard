@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Dashboard</title>
+  <meta name="robots" content="noindex, nofollow">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-tertiary: #1a2235;
+      --bg-hover: #1e293b;
+      --border: #1e293b;
+      --border-subtle: #162032;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #475569;
+      --accent-blue: #3b82f6;
+      --accent-blue-dim: #1e3a5f;
+      --accent-green: #22c55e;
+      --accent-green-dim: rgba(34,197,94,0.15);
+      --accent-red: #ef4444;
+      --accent-red-dim: rgba(239,68,68,0.15);
+      --accent-yellow: #eab308;
+      --accent-yellow-dim: rgba(234,179,8,0.15);
+      --accent-purple: #a78bfa;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-sans: 'DM Sans', system-ui, sans-serif;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    #root { min-height: 100vh; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* Animations */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    .spin { animation: spin 1s linear infinite; }
+    .pulse { animation: pulse 2s ease-in-out infinite; }
+
+    /* Layout */
+    .container { max-width: 1400px; margin: 0 auto; padding: 0 20px; }
+
+    /* Header */
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 40;
+      backdrop-filter: blur(12px);
+    }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-logo { color: var(--accent-blue); display: flex; align-items: center; }
+    .header-title { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+    .header-user { font-size: 13px; color: var(--text-muted); font-family: var(--font-mono); }
+    .header-actions { display: flex; align-items: center; gap: 4px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    .btn-icon {
+      width: 34px; height: 34px; padding: 0;
+      background: transparent; color: var(--text-muted);
+      border-radius: 8px;
+    }
+    .btn-icon:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .btn-primary {
+      background: var(--accent-blue); color: white;
+      padding: 8px 16px;
+    }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-primary:disabled { background: var(--bg-tertiary); color: var(--text-muted); cursor: not-allowed; }
+    .btn-ghost {
+      background: transparent; color: var(--text-secondary);
+      padding: 6px 12px; border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text-primary); border-color: var(--text-muted); }
+    .btn-ghost.active { border-color: var(--accent-blue); color: var(--accent-blue); background: var(--accent-blue-dim); }
+    .btn-deploy {
+      background: var(--accent-green-dim); color: var(--accent-green);
+      padding: 4px 10px; font-size: 12px; font-weight: 600;
+      font-family: var(--font-mono);
+    }
+    .btn-deploy:hover { background: rgba(34,197,94,0.25); }
+    .btn-deploy:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 16px; font-size: 13px; font-weight: 500;
+      color: var(--text-muted); background: none; border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer; transition: all 0.15s ease;
+      margin-bottom: -1px;
+    }
+    .tab:hover { color: var(--text-secondary); }
+    .tab.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+    .tab-count {
+      background: var(--bg-tertiary); padding: 1px 7px; border-radius: 10px;
+      font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);
+    }
+    .tab.active .tab-count { background: var(--accent-blue-dim); color: var(--accent-blue); }
+
+    /* Tables */
+    .table-wrap {
+      border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; margin-bottom: 16px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg-secondary); }
+    th {
+      padding: 10px 14px; text-align: left;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-muted); white-space: nowrap;
+      user-select: none;
+    }
+    th.sortable { cursor: pointer; }
+    th.sortable:hover { color: var(--text-secondary); }
+    th .sort-icon { display: inline-flex; margin-left: 4px; vertical-align: middle; opacity: 0.4; }
+    th.sorted .sort-icon { opacity: 1; color: var(--accent-blue); }
+    td { padding: 10px 14px; font-size: 13px; border-top: 1px solid var(--border-subtle); white-space: nowrap; }
+    tr:hover td { background: var(--bg-hover); }
+
+    /* Links */
+    a { color: var(--accent-blue); text-decoration: none; }
+    a:hover { color: #60a5fa; }
+    .link-muted { color: var(--text-muted); }
+    .link-muted:hover { color: var(--accent-blue); }
+
+    /* Status Indicators */
+    .status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-green { background: var(--accent-green); box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+    .dot-red { background: var(--accent-red); box-shadow: 0 0 6px rgba(239,68,68,0.4); }
+    .dot-yellow { background: var(--accent-yellow); box-shadow: 0 0 6px rgba(234,179,8,0.4); }
+    .dot-gray { background: var(--text-muted); }
+
+    /* Badges */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 6px;
+      font-size: 11px; font-weight: 600;
+      font-family: var(--font-mono);
+    }
+    .badge-private { background: var(--accent-green-dim); color: var(--accent-green); }
+    .badge-public { background: var(--accent-red-dim); color: var(--accent-red); }
+    .badge-lang { background: var(--bg-tertiary); color: var(--text-secondary); }
+
+    /* Login */
+    .login-wrap {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.08) 0%, transparent 60%), var(--bg-primary);
+    }
+    .login-card {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: 16px; padding: 40px; max-width: 420px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .login-card h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .login-card p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .login-card .hint { font-size: 12px; color: var(--text-muted); margin-top: 12px; }
+    .login-card code { background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 11px; }
+    .input {
+      width: 100%; padding: 10px 14px;
+      background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-primary);
+      font-family: var(--font-mono); font-size: 13px;
+      outline: none; margin-top: 16px; transition: border-color 0.15s;
+    }
+    .input:focus { border-color: var(--accent-blue); }
+    .input::placeholder { color: var(--text-muted); }
+    .error-msg { color: var(--accent-red); font-size: 13px; margin-top: 8px; }
+
+    /* Group Header */
+    .group-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 0; cursor: pointer;
+      font-size: 14px; font-weight: 600; color: var(--text-secondary);
+    }
+    .group-header:hover { color: var(--text-primary); }
+    .group-count { color: var(--text-muted); font-weight: 400; font-size: 12px; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 50; padding: 20px; backdrop-filter: blur(4px);
+    }
+    .modal {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px; max-width: 520px; width: 100%;
+      max-height: 80vh; display: flex; flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+    .modal-list { overflow-y: auto; flex: 1; }
+    .modal-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; border-radius: 8px; margin-bottom: 4px;
+      background: var(--bg-tertiary);
+    }
+    .modal-row span { font-size: 13px; color: var(--text-secondary); }
+    .modal-select {
+      background: var(--bg-primary); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 8px; color: var(--text-primary);
+      font-size: 12px; outline: none;
+    }
+    .modal-input {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .modal-input input {
+      flex: 1; padding: 6px 12px;
+      background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text-primary);
+      font-size: 13px; outline: none;
+    }
+
+    /* Loader */
+    .loader-wrap { display: flex; align-items: center; justify-content: center; padding: 80px 0; gap: 12px; }
+    .loader-wrap span { color: var(--text-muted); font-size: 14px; }
+
+    /* Footer */
+    .footer { padding: 32px 0; text-align: center; font-size: 12px; color: var(--text-muted); }
+
+    /* Overflow */
+    .overflow-x { overflow-x: auto; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+
+    /* Deploy script link */
+    .deploy-link { display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: 12px; font-family: var(--font-mono); }
+    .deploy-link:hover { color: var(--accent-blue); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-user { display: none; }
+      td, th { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useMemo } = React;
+
+    const GITHUB_API = "https://api.github.com";
+    const STORAGE_KEY = "gh-dash-token";
+    const GROUPS_KEY = "gh-dash-groups";
+    const EXPIRY_DAYS = 90;
+
+    // Icons as inline SVG components
+    const Icon = ({ d, size = 16, className = "", stroke = "currentColor", fill = "none" }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{flexShrink:0}}>
+        {Array.isArray(d) ? d.map((p, i) => <path key={i} d={p} />) : <path d={d} />}
+      </svg>
+    );
+
+    const Icons = {
+      gitBranch: (p) => <Icon {...p} d={["M6 3v12", "M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", "M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", "M18 9a9 9 0 0 1-9 9"].map(d => d)} />,
+      play: (p) => <Icon {...p} d="M5 3l14 9-14 9V3z" />,
+      link: (p) => <Icon {...p} d={["M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6", "M15 3h6v6", "M10 14L21 3"]} />,
+      lock: (p) => <Icon {...p} d={["M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z", "M7 11V7a5 5 0 0 1 10 0v4"]} />,
+      unlock: (p) => <Icon {...p} d={["M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z", "M8 11V7a4 4 0 0 1 8 0"]} />,
+      arrowUp: (p) => <Icon {...p} d={["M12 19V5", "M5 12l7-7 7 7"]} />,
+      arrowDown: (p) => <Icon {...p} d={["M12 5v14", "M19 12l-7 7-7-7"]} />,
+      arrowUpDown: (p) => <Icon {...p} d={["M7 15l5 5 5-5", "M7 9l5-5 5 5"]} />,
+      loader: (p) => <Icon {...p} d={["M21 12a9 9 0 1 1-6.219-8.56"]} />,
+      logout: (p) => <Icon {...p} d={["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", "M16 17l5-5-5-5", "M21 12H9"]} />,
+      refresh: (p) => <Icon {...p} d={["M23 4v6h-6", "M1 20v-6h6", "M3.51 9a9 9 0 0 1 14.85-3.36L23 10", "M1 14l4.64 4.36A9 9 0 0 0 20.49 15"]} />,
+      settings: (p) => <Icon {...p} d={["M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z", "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"]} />,
+      x: (p) => <Icon {...p} d={["M18 6L6 18", "M6 6l12 12"]} />,
+      chevDown: (p) => <Icon {...p} d="M6 9l6 6 6-6" />,
+      chevRight: (p) => <Icon {...p} d="M9 18l6-6-6-6" />,
+      file: (p) => <Icon {...p} d={["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z", "M14 2v6h6", "M16 13H8", "M16 17H8"]} />,
+      clock: (p) => <Icon {...p} d={["M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z", "M12 6v6l4 2"]} />,
+      list: (p) => <Icon {...p} d={["M8 6h13", "M8 12h13", "M8 18h13", "M3 6h.01", "M3 12h.01", "M3 18h.01"]} />,
+    };
+
+    // Storage (localStorage for GitHub Pages)
+    function loadToken() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) { const d = JSON.parse(raw); if (Date.now() < d.expiry) return d.token; }
+      } catch {} return null;
+    }
+    function saveToken(token) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, expiry: Date.now() + EXPIRY_DAYS*86400000 }));
+    }
+    function clearToken() { localStorage.removeItem(STORAGE_KEY); }
+    function loadGroups() { try { return JSON.parse(localStorage.getItem(GROUPS_KEY)) || {}; } catch { return {}; } }
+    function saveGroupsLS(g) { localStorage.setItem(GROUPS_KEY, JSON.stringify(g)); }
+
+    // GitHub API
+    async function ghFetch(path, token, opts = {}) {
+      const r = await fetch(`${GITHUB_API}${path}`, { ...opts, headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", ...opts.headers } });
+      if (!r.ok) throw new Error(`${r.status}`);
+      return opts.method === "POST" && r.status === 204 ? null : r.json();
+    }
+    async function fetchAllRepos(token) {
+      let page = 1, all = [];
+      while (true) { const r = await ghFetch(`/user/repos?per_page=100&sort=updated&page=${page}`, token); all.push(...r); if (r.length < 100) break; page++; }
+      return all;
+    }
+    async function fetchWorkflows(o, r, t) { try { return (await ghFetch(`/repos/${o}/${r}/actions/workflows`, t)).workflows || []; } catch { return []; } }
+    async function fetchRuns(o, r, t, n = 5) { try { return (await ghFetch(`/repos/${o}/${r}/actions/runs?per_page=${n}`, t)).workflow_runs || []; } catch { return []; } }
+    async function triggerWorkflow(o, r, wid, t) {
+      await ghFetch(`/repos/${o}/${r}/actions/workflows/${wid}/dispatches`, t, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ref: "main" }) });
+    }
+
+    // Helpers
+    function timeAgo(d) {
+      const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
+      if (m < 60) return `${m}m`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}h`;
+      const days = Math.floor(h / 24);
+      if (days < 30) return `${days}d`;
+      return new Date(d).toLocaleDateString("de-DE");
+    }
+    function fmtDate(d) { return new Date(d).toLocaleString("de-DE", { day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" }); }
+    function fmtDuration(s, e) {
+      if (!s || !e) return "—";
+      const sec = Math.round((new Date(e) - new Date(s)) / 1000);
+      return sec < 60 ? `${sec}s` : `${Math.floor(sec/60)}m ${sec%60}s`;
+    }
+
+    // Components
+    function StatusDot({ status, conclusion }) {
+      if (status === "in_progress" || status === "queued") return <span className="dot dot-yellow pulse"></span>;
+      if (conclusion === "success") return <span className="dot dot-green"></span>;
+      if (conclusion === "failure") return <span className="dot dot-red"></span>;
+      return <span className="dot dot-gray"></span>;
+    }
+
+    function SortHeader({ label, field, config, onSort }) {
+      const active = config.field === field;
+      const cls = `sortable ${active ? "sorted" : ""}`;
+      const IconComp = active ? (config.dir === "asc" ? Icons.arrowUp : Icons.arrowDown) : Icons.arrowUpDown;
+      return (
+        <th className={cls} onClick={() => onSort(field)}>
+          {label}<span className="sort-icon"><IconComp size={11} /></span>
+        </th>
+      );
+    }
+
+    // Login
+    function LoginScreen({ onLogin, error }) {
+      const [token, setToken] = useState("");
+      const [loading, setLoading] = useState(false);
+      const submit = async () => {
+        setLoading(true);
+        try { const u = await ghFetch("/user", token); saveToken(token); onLogin(token, u); }
+        catch { onLogin(null, null, "Token ungültig oder fehlende Berechtigung."); }
+        setLoading(false);
+      };
+      return (
+        <div className="login-wrap">
+          <div className="login-card fade-in">
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+              <Icons.gitBranch size={26} />
+              <h1>GitHub Dashboard</h1>
+            </div>
+            <p>Personal Access Token eingeben.<br/>Wird für {EXPIRY_DAYS} Tage gespeichert.</p>
+            <div className="hint">
+              Token erstellen: <a href="https://github.com/settings/tokens?type=beta" target="_blank">github.com/settings/tokens</a><br/>
+              Permissions: <code>Actions</code> <code>Contents</code> <code>Workflows</code> (Read & Write)
+            </div>
+            <input className="input" type="password" placeholder="github_pat_xxxxxxxxxxxx" value={token}
+              onChange={e => setToken(e.target.value)} onKeyDown={e => e.key === "Enter" && token && submit()} />
+            {error && <div className="error-msg">{error}</div>}
+            <button className="btn btn-primary" style={{width:"100%",marginTop:12}} onClick={submit} disabled={!token || loading}>
+              {loading && <Icons.loader size={14} className="spin" />} Anmelden
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Group Modal
+    function GroupModal({ repos, groups, onSave, onClose }) {
+      const [local, setLocal] = useState({...groups});
+      const [newG, setNewG] = useState("");
+      const names = [...new Set(Object.values(local).filter(Boolean))].sort();
+      const allNames = newG.trim() ? [...names, newG.trim()] : names;
+      return (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+          <div className="modal fade-in">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <h2>Repo-Gruppen zuordnen</h2>
+              <button className="btn btn-icon" onClick={onClose}><Icons.x size={18} /></button>
+            </div>
+            <div className="modal-input">
+              <input placeholder="Neue Gruppe..." value={newG} onChange={e => setNewG(e.target.value)} />
+            </div>
+            <div className="modal-list">
+              {repos.map(r => (
+                <div className="modal-row" key={r.name}>
+                  <span>{r.name}</span>
+                  <select className="modal-select" value={local[r.name]||""} onChange={e => setLocal({...local, [r.name]: e.target.value})}>
+                    <option value="">— Keine —</option>
+                    {allNames.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+            <button className="btn btn-primary" style={{width:"100%",marginTop:16}} onClick={() => { onSave(local); onClose(); }}>Speichern</button>
+          </div>
+        </div>
+      );
+    }
+
+    // Main Dashboard
+    function Dashboard() {
+      const [token, setToken] = useState(null);
+      const [user, setUser] = useState(null);
+      const [loginErr, setLoginErr] = useState("");
+      const [repos, setRepos] = useState([]);
+      const [details, setDetails] = useState({});
+      const [allRuns, setAllRuns] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [init, setInit] = useState(true);
+      const [groups, setGroups] = useState({});
+      const [grouped, setGrouped] = useState(false);
+      const [showModal, setShowModal] = useState(false);
+      const [collapsed, setCollapsed] = useState({});
+      const [repoSort, setRepoSort] = useState({ field: "updated_at", dir: "desc" });
+      const [runSort, setRunSort] = useState({ field: "created_at", dir: "desc" });
+      const [triggering, setTriggering] = useState({});
+      const [tab, setTab] = useState("repos");
+
+      // Init
+      useEffect(() => {
+        const t = loadToken();
+        if (t) { ghFetch("/user", t).then(u => { setToken(t); setUser(u); }).catch(() => {}).finally(() => setInit(false)); }
+        else setInit(false);
+        setGroups(loadGroups());
+      }, []);
+
+      // Fetch data
+      const fetchData = useCallback(async () => {
+        if (!token || !user) return;
+        setLoading(true);
+        try {
+          const allRepos = await fetchAllRepos(token);
+          setRepos(allRepos);
+          const det = {}, runs = [];
+          for (let i = 0; i < allRepos.length; i += 5) {
+            const batch = allRepos.slice(i, i + 5);
+            await Promise.all(batch.map(async repo => {
+              const [wf, rr] = await Promise.all([
+                fetchWorkflows(user.login, repo.name, token),
+                fetchRuns(user.login, repo.name, token, 5)
+              ]);
+              const deployWf = wf.find(w => /deploy|build/i.test(w.name));
+              const dispatchWf = wf.find(w => /deploy|build/i.test(w.name) && w.state === "active");
+              det[repo.name] = { deployWf, dispatchWf, latestRun: rr[0] || null };
+              runs.push(...rr.map(r => ({ ...r, _repo: repo.name, _full: repo.full_name })));
+            }));
+          }
+          setDetails(det);
+          setAllRuns(runs);
+        } catch (e) { console.error(e); }
+        setLoading(false);
+      }, [token, user]);
+
+      useEffect(() => { fetchData(); }, [fetchData]);
+
+      // Sort
+      const doSort = (data, cfg) => [...data].sort((a, b) => {
+        let av = a[cfg.field], bv = b[cfg.field];
+        if (typeof av === "string") { av = av.toLowerCase(); bv = (bv || "").toLowerCase(); }
+        if (av == null) return 1; if (bv == null) return -1;
+        return av < bv ? (cfg.dir === "asc" ? -1 : 1) : av > bv ? (cfg.dir === "asc" ? 1 : -1) : 0;
+      });
+      const toggleSort = setter => field => setter(p => ({ field, dir: p.field === field && p.dir === "desc" ? "asc" : "desc" }));
+
+      const handleTrigger = async (repo, wid) => {
+        setTriggering(t => ({...t, [repo]: true}));
+        try { await triggerWorkflow(user.login, repo, wid, token); setTimeout(fetchData, 3000); }
+        catch (e) { alert("Fehler: " + e.message); }
+        setTriggering(t => ({...t, [repo]: false}));
+      };
+
+      const handleSaveGroups = g => { setGroups(g); saveGroupsLS(g); };
+
+      const sorted = doSort(repos, repoSort);
+      const groupedRepos = useMemo(() => {
+        if (!grouped) return { "": sorted };
+        const g = {};
+        sorted.forEach(r => { const k = groups[r.name] || "Ohne Gruppe"; (g[k] = g[k] || []).push(r); });
+        const s = {};
+        Object.keys(g).sort((a,b) => a === "Ohne Gruppe" ? 1 : b === "Ohne Gruppe" ? -1 : a.localeCompare(b)).forEach(k => s[k] = g[k]);
+        return s;
+      }, [sorted, grouped, groups]);
+
+      const sortedRuns = doSort(allRuns, runSort).slice(0, 60);
+
+      const logout = () => { clearToken(); setToken(null); setUser(null); setRepos([]); setDetails({}); setAllRuns([]); };
+
+      if (init) return <div className="loader-wrap"><Icons.loader size={28} className="spin" style={{color:"var(--accent-blue)"}} /></div>;
+      if (!token) return <LoginScreen onLogin={(t,u,e) => { setToken(t); setUser(u); setLoginErr(e||""); }} error={loginErr} />;
+
+      const RepoRow = ({ repo }) => {
+        const d = details[repo.name] || {};
+        return (
+          <tr>
+            <td><span className={`badge ${repo.private ? "badge-private" : "badge-public"}`}>{repo.private ? "🔒" : "🌐"}</span></td>
+            {grouped && <td style={{fontSize:12,color:"var(--text-muted)"}}>{groups[repo.name] || "—"}</td>}
+            <td><a href={repo.html_url} target="_blank" style={{fontWeight:600,fontFamily:"var(--font-mono)",fontSize:13}}>{repo.name}</a></td>
+            <td style={{color:"var(--text-muted)",fontSize:12,fontFamily:"var(--font-mono)"}}>{timeAgo(repo.updated_at)}</td>
+            <td>
+              {d.latestRun ? (
+                <a href={d.latestRun.html_url} target="_blank" className="status" style={{color:"var(--text-secondary)"}}>
+                  <StatusDot status={d.latestRun.status} conclusion={d.latestRun.conclusion} />
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:12}}>{fmtDate(d.latestRun.created_at)}</span>
+                </a>
+              ) : <span style={{color:"var(--text-muted)",fontSize:12}}>—</span>}
+            </td>
+            <td>
+              {d.deployWf ? (
+                <a href={`${repo.html_url}/blob/main/${d.deployWf.path}`} target="_blank" className="deploy-link">
+                  <Icons.file size={12} />{d.deployWf.name}
+                </a>
+              ) : <span style={{color:"var(--text-muted)",fontSize:12}}>—</span>}
+            </td>
+            <td>
+              {d.dispatchWf ? (
+                <button className="btn btn-deploy" onClick={() => handleTrigger(repo.name, d.dispatchWf.id)} disabled={triggering[repo.name]}>
+                  {triggering[repo.name] ? <Icons.loader size={11} className="spin" /> : <Icons.play size={11} />}
+                  Start
+                </button>
+              ) : null}
+            </td>
+            <td>{repo.language ? <span className="badge badge-lang">{repo.language}</span> : <span style={{color:"var(--text-muted)",fontSize:12}}>—</span>}</td>
+            <td style={{color:"var(--text-muted)",fontSize:12,fontFamily:"var(--font-mono)"}}>{repo.size ? `${(repo.size/1024).toFixed(1)} MB` : "—"}</td>
+          </tr>
+        );
+      };
+
+      const RepoTable = ({ repos: rp }) => (
+        <div className="table-wrap overflow-x">
+          <table>
+            <thead>
+              <tr>
+                <th style={{width:50}}></th>
+                {grouped && <SortHeader label="Gruppe" field="_group" config={repoSort} onSort={toggleSort(setRepoSort)} />}
+                <SortHeader label="Repository" field="name" config={repoSort} onSort={toggleSort(setRepoSort)} />
+                <SortHeader label="Aktualisiert" field="updated_at" config={repoSort} onSort={toggleSort(setRepoSort)} />
+                <th>Letzte Action</th>
+                <th>Deploy-Skript</th>
+                <th style={{width:80}}>Deploy</th>
+                <SortHeader label="Sprache" field="language" config={repoSort} onSort={toggleSort(setRepoSort)} />
+                <SortHeader label="Größe" field="size" config={repoSort} onSort={toggleSort(setRepoSort)} />
+              </tr>
+            </thead>
+            <tbody>{rp.map(r => <RepoRow key={r.id} repo={r} />)}</tbody>
+          </table>
+        </div>
+      );
+
+      return (
+        <div>
+          {showModal && <GroupModal repos={repos} groups={groups} onSave={handleSaveGroups} onClose={() => setShowModal(false)} />}
+
+          <header className="header">
+            <div className="container header-inner">
+              <div className="header-left">
+                <span className="header-logo"><Icons.gitBranch size={22} /></span>
+                <span className="header-title">Dashboard</span>
+                {user && <span className="header-user">@{user.login}</span>}
+              </div>
+              <div className="header-actions">
+                <button className="btn btn-icon" onClick={fetchData} disabled={loading} title="Aktualisieren">
+                  <Icons.refresh size={15} className={loading ? "spin" : ""} />
+                </button>
+                <button className="btn btn-icon" onClick={() => setShowModal(true)} title="Gruppen">
+                  <Icons.settings size={15} />
+                </button>
+                <button className="btn btn-icon" onClick={logout} title="Logout">
+                  <Icons.logout size={15} />
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <div className="container" style={{paddingTop:20}}>
+            <div className="tabs">
+              <button className={`tab ${tab==="repos" ? "active" : ""}`} onClick={() => setTab("repos")}>
+                <Icons.list size={14} />Repositories<span className="tab-count">{repos.length}</span>
+              </button>
+              <button className={`tab ${tab==="runs" ? "active" : ""}`} onClick={() => setTab("runs")}>
+                <Icons.play size={14} />Deployments<span className="tab-count">{allRuns.length}</span>
+              </button>
+            </div>
+
+            {loading && repos.length === 0 ? (
+              <div className="loader-wrap"><Icons.loader size={26} className="spin" style={{color:"var(--accent-blue)"}} /><span>Lade Repositories...</span></div>
+            ) : tab === "repos" ? (
+              <div className="fade-in">
+                <div style={{marginBottom:12}}>
+                  <button className={`btn btn-ghost ${grouped ? "active" : ""}`} onClick={() => setGrouped(g => !g)}>
+                    <Icons.list size={13} />{grouped ? "Gruppiert" : "Gruppierung"}
+                  </button>
+                  {loading && <Icons.loader size={13} className="spin" style={{marginLeft:8,color:"var(--accent-blue)"}} />}
+                </div>
+                {Object.entries(groupedRepos).map(([name, rp]) => (
+                  <div key={name}>
+                    {grouped && name && (
+                      <div className="group-header" onClick={() => setCollapsed(c => ({...c, [name]: !c[name]}))}>
+                        {collapsed[name] ? <Icons.chevRight size={16} /> : <Icons.chevDown size={16} />}
+                        {name} <span className="group-count">({rp.length})</span>
+                      </div>
+                    )}
+                    {!collapsed[name] && <RepoTable repos={rp} />}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="table-wrap overflow-x fade-in">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style={{width:36}}></th>
+                      <SortHeader label="Repository" field="_repo" config={runSort} onSort={toggleSort(setRunSort)} />
+                      <SortHeader label="Datum / Zeit" field="created_at" config={runSort} onSort={toggleSort(setRunSort)} />
+                      <th>Dauer</th>
+                      <SortHeader label="Name" field="name" config={runSort} onSort={toggleSort(setRunSort)} />
+                      <th>Commit</th>
+                      <th>Pushed by</th>
+                      <th style={{width:36}}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedRuns.map(run => (
+                      <tr key={run.id}>
+                        <td><StatusDot status={run.status} conclusion={run.conclusion} /></td>
+                        <td><a href={`https://github.com/${run._full}`} target="_blank" style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600}}>{run._repo}</a></td>
+                        <td style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--text-muted)"}}>{fmtDate(run.created_at)}</td>
+                        <td style={{fontSize:12,color:"var(--text-muted)"}}>
+                          <span className="status"><Icons.clock size={11} />{fmtDuration(run.run_started_at, run.updated_at)}</span>
+                        </td>
+                        <td style={{fontSize:12,color:"var(--text-secondary)"}}>{run.name}</td>
+                        <td className="truncate" style={{fontSize:12,color:"var(--text-muted)"}} title={run.head_commit?.message}>{run.head_commit?.message?.split("\n")[0] || "—"}</td>
+                        <td style={{fontSize:12,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{run.actor?.login || "—"}</td>
+                        <td><a href={run.html_url} target="_blank" className="link-muted"><Icons.link size={13} /></a></td>
+                      </tr>
+                    ))}
+                    {sortedRuns.length === 0 && <tr><td colSpan={8} style={{textAlign:"center",padding:40,color:"var(--text-muted)"}}>Keine Workflow Runs gefunden</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="footer">GitHub Dashboard · Token gültig bis {new Date(Date.now() + EXPIRY_DAYS*86400000).toLocaleDateString("de-DE")}</div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<Dashboard />);
+  </script>
+</body>
+</html>
